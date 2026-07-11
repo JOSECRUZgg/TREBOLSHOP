@@ -115,3 +115,8 @@ export async function seedDefaults() {
 
     revalidatePath('/admin/attributes')
 }
+
+export async function seedDefaultsAction() {
+    "use server"
+    await seedDefaults()
+}

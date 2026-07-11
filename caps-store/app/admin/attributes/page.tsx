@@ -3,7 +3,7 @@ import {
     getStyles, addStyle, editStyle, removeStyle,
     getMaterials, addMaterial, editMaterial, removeMaterial,
     getCategories, addCategory, editCategory, removeCategory,
-    seedDefaults
+    seedDefaultsAction
 } from '@/lib/attribute-actions'
 import { AttributeList } from './attribute-list'
 import { Button } from '@/components/ui/button'
@@ -25,10 +25,7 @@ export default async function AttributesPage() {
                     <p className="text-slate-500 text-sm mt-1">Personaliza las opciones y categorías disponibles para tus productos.</p>
                 </div>
                 {!hasData && (
-                    <form action={async () => {
-                        "use server"
-                        await seedDefaults()
-                    }}>
+                    <form action={seedDefaultsAction}>
                         <Button type="submit" className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-sm font-medium transition-all h-10 px-6">
                             <Database className="mr-2 h-4 w-4" /> Cargar Datos Default
                         </Button>
