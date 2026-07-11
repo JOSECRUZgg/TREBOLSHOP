@@ -19,7 +19,6 @@ export function InactivityLogout() {
             }
 
             timerRef.current = setTimeout(() => {
-                console.log('Inactivity limit reached, logging out...')
                 signOut({ callbackUrl: '/login' })
             }, INACTIVITY_LIMIT_MS)
         }
@@ -27,21 +26,23 @@ export function InactivityLogout() {
         // Initial set
         resetTimer()
 
-        // Event listeners for user activity
-        const events = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart']
+        // Event listeners for user activity (throttled to 1/sec for mousemove)
+        let lastReset = 0
+        const throttledReset = () => {
+            const now = Date.now()
+            if (now - lastReset < 1000) return
+            lastReset = now
+            resetTimer()
+        }
 
-        events.forEach(event => {
-            window.addEventListener(event, resetTimer)
-        })
+        const events = ['keydown', 'click', 'scroll', 'touchstart']
+        events.forEach(event => window.addEventListener(event, resetTimer))
+        window.addEventListener('mousemove', throttledReset)
 
-        // Cleanup
         return () => {
-            if (timerRef.current) {
-                clearTimeout(timerRef.current)
-            }
-            events.forEach(event => {
-                window.removeEventListener(event, resetTimer)
-            })
+            if (timerRef.current) clearTimeout(timerRef.current)
+            events.forEach(event => window.removeEventListener(event, resetTimer))
+            window.removeEventListener('mousemove', throttledReset)
         }
     }, [])
 

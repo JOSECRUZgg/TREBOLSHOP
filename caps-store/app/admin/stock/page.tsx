@@ -3,7 +3,7 @@ import StockRow from "./stock-row"
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 export default async function AdminStockPage() {
-    const products = await getProducts({ limit: 100 } as any)
+    const { products } = await getProducts({ limit: 200 })
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8">

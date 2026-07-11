@@ -3,10 +3,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Sparkles, Target, Eye, Mail, Phone, MapPin, Instagram, Facebook } from "lucide-react"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
-import { getSession } from "@/lib/auth"
+import { auth } from "@/lib/auth"
 
 export default async function AboutPage() {
-    const session = await getSession()
+    const session = await auth()
 
     return (
         <div className="min-h-screen bg-[#fafafa] font-sans selection:bg-orange-100 selection:text-orange-900 flex flex-col">

@@ -1,7 +1,6 @@
 
 import NextAuth from "next-auth"
 import { PrismaAdapter } from "@auth/prisma-adapter"
-import { PrismaClient } from "@prisma/client"
 import { authConfig } from "./auth.config"
 import Credentials from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
@@ -12,7 +11,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     adapter: PrismaAdapter(prisma) as any,
     session: {
         strategy: "jwt",
-        maxAge: 24 * 60 * 60, // 24 hours fallback for the token itself
+        maxAge: 24 * 60 * 60,
     },
     cookies: {
         sessionToken: {
@@ -22,7 +21,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 sameSite: "lax",
                 path: "/",
                 secure: process.env.NODE_ENV === "production",
-                // By OMITTING maxAge here, it becomes a session cookie
             },
         },
     },
@@ -38,17 +36,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     if (!email || !password) return null
 
                     const user = await prisma.user.findUnique({ where: { email } })
-                    console.log('--- LOGIN DEBUG ---')
-                    console.log('Email:', email)
-                    console.log('User found:', !!user)
 
-                    if (!user || !user.password) {
-                        console.log('No user or no password in DB')
-                        return null
-                    }
+                    if (!user || !user.password) return null
 
                     const passwordsMatch = await bcrypt.compare(password, user.password)
-                    console.log('Passwords match:', passwordsMatch)
 
                     if (passwordsMatch) {
                         return {
@@ -63,8 +54,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     }
 
                     return null
-                } catch (error) {
-                    console.error('CRITICAL ERROR IN AUTHORIZE:', error)
+                } catch {
                     return null
                 }
             }
@@ -72,7 +62,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     ],
 })
 
-// Compatibility helper
-export const getSession = async () => {
-    return await auth();
+export async function requireAdmin() {
+    const session = await auth()
+    if (!session?.user || (session.user as any).role !== 'ADMIN') {
+        throw new Error('No autorizado')
+    }
+    return session
+}
+
+export async function requireAuth() {
+    const session = await auth()
+    if (!session?.user?.id) {
+        throw new Error('No autorizado')
+    }
+    return session
 }

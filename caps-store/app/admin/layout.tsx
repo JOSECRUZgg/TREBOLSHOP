@@ -1,4 +1,4 @@
-import { getSession } from "@/lib/auth"
+import { auth, signOut } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { LayoutDashboard, Package, Archive, Settings, LogOut, Home, Users, ShoppingBag } from "lucide-react"
@@ -8,14 +8,18 @@ export default async function AdminLayout({
 }: {
     children: React.ReactNode
 }) {
-    const session = await getSession()
+    const session = await auth()
 
-    // Protect Route - Simple Check
-    if (!session || (session as any).user.role !== 'ADMIN') {
+    if (!session?.user || (session.user as any).role !== 'ADMIN') {
         redirect('/login')
     }
 
-    const user = (session as any).user
+    const user = session.user as any
+
+    async function handleLogout() {
+        'use server'
+        await signOut({ redirectTo: '/login' })
+    }
 
     return (
         <div className="flex h-screen bg-slate-100">
@@ -69,13 +73,11 @@ export default async function AdminLayout({
                             <div className="text-xs text-slate-500">{user.email}</div>
                         </div>
                     </div>
-                    {/* Logout could be a form/button calling action */}
-                    <form action="/api/auth/logout" method="POST">
-                        {/* For simplicity using link to home or client component logout */}
-                        <Link href="/login" className="flex items-center gap-3 px-3 py-2 text-red-400 hover:text-red-300 transition-colors text-sm">
+                    <form action={handleLogout}>
+                        <button type="submit" className="flex items-center gap-3 px-3 py-2 text-red-400 hover:text-red-300 transition-colors text-sm w-full">
                             <LogOut size={16} />
                             Cerrar Sesión
-                        </Link>
+                        </button>
                     </form>
                 </div>
             </aside>

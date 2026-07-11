@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
+import { addProduct, updateProduct } from "@/lib/actions"
 
 interface AttributeOption {
     id: string
@@ -16,7 +17,8 @@ interface AttributeOption {
 
 interface ProductFormProps {
     initialData?: any
-    onSubmit: (formData: FormData) => Promise<any>
+    mode: 'create' | 'update'
+    productId?: string
     title: string
     options: {
         qualities: AttributeOption[]
@@ -26,7 +28,7 @@ interface ProductFormProps {
     }
 }
 
-export function ProductForm({ initialData, onSubmit, title, options }: ProductFormProps) {
+export function ProductForm({ initialData, mode, productId, title, options }: ProductFormProps) {
     const router = useRouter()
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
@@ -39,7 +41,11 @@ export function ProductForm({ initialData, onSubmit, title, options }: ProductFo
         const formData = new FormData(e.currentTarget)
 
         try {
-            await onSubmit(formData)
+            if (mode === 'update' && productId) {
+                await updateProduct(productId, formData)
+            } else {
+                await addProduct(formData)
+            }
             router.push('/admin/products')
         } catch (err: any) {
             setError(err.message || 'Something went wrong')

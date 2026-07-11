@@ -26,6 +26,14 @@ interface CartStore {
     syncPrices: (serverPrices: { id: string, price: number }[]) => void
 }
 
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
+function debouncedSyncCart(items: any[]) {
+    if (debounceTimer) clearTimeout(debounceTimer)
+    debounceTimer = setTimeout(() => {
+        updateCart(items)
+    }, 800)
+}
+
 export const useCart = create<CartStore>()(
     persist(
         (set, get) => ({
@@ -48,7 +56,7 @@ export const useCart = create<CartStore>()(
 
                 if (hasChanged) {
                     set({ items: newItems })
-                    updateCart(newItems)
+                    debouncedSyncCart(newItems)
                 }
             },
             addItem: (product) => {
@@ -66,12 +74,12 @@ export const useCart = create<CartStore>()(
                     newItems = [...currentItems, { ...product, quantity: 1 }]
                 }
                 set({ items: newItems })
-                updateCart(newItems)
+                debouncedSyncCart(newItems)
             },
             removeItem: (id) => {
                 const newItems = get().items.filter((item) => item.id !== id)
                 set({ items: newItems })
-                updateCart(newItems)
+                debouncedSyncCart(newItems)
             },
             updateQuantity: (id, quantity) => {
                 if (quantity <= 0) {
@@ -82,7 +90,7 @@ export const useCart = create<CartStore>()(
                     item.id === id ? { ...item, quantity } : item
                 )
                 set({ items: newItems })
-                updateCart(newItems)
+                debouncedSyncCart(newItems)
             },
             clearCart: () => {
                 set({ items: [] })

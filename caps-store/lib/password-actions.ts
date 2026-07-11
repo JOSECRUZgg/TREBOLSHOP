@@ -14,8 +14,8 @@ const ResetSchema = z.object({
 });
 
 const NewPasswordSchema = z.object({
-  password: z.string().min(6, {
-    message: "Minimum of 6 characters required",
+  password: z.string().min(8, {
+    message: "Minimum of 8 characters required",
   }),
 });
 
@@ -33,7 +33,8 @@ export const reset = async (values: z.infer<typeof ResetSchema>) => {
   });
 
   if (!existingUser) {
-    return { error: "Email no encontrado" };
+    // Don't reveal whether email exists or not
+    return { success: "Correo de restablecimiento enviado" };
   }
 
   const passwordResetToken = await generatePasswordResetToken(email);
@@ -78,7 +79,7 @@ export const newPassword = async (
   });
 
   if (!existingUser) {
-    return { error: "Email no existe" };
+    return { error: "Token inválido" };
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);

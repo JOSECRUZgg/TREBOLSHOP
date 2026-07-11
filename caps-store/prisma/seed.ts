@@ -7,7 +7,7 @@ async function main() {
   console.log('Start seeding ...')
 
   // Hash password for admin
-  const adminPassword = await bcrypt.hash('12345', 10)
+  const adminPassword = await bcrypt.hash('Admin123', 10)
 
   // Categories / Qualities are strings in our schema (field: quality)
   // Subcategories are also strings (field: subcategory)
@@ -28,7 +28,7 @@ async function main() {
       material: "Polyester",
       style: "Urbana",
       audience: "Unisex",
-      imageUrl: "/placeholder-cap-red.jpg"
+      imageUrl: "/placeholder.jpg"
     },
     {
       code: "BAS-002",
@@ -42,7 +42,7 @@ async function main() {
       material: "Mesh/Foam",
       style: "Urbana",
       audience: "Unisex",
-      imageUrl: "/placeholder-cap-blue.jpg"
+      imageUrl: "/placeholder.jpg"
     },
     // STANDARD
     {
@@ -57,7 +57,7 @@ async function main() {
       material: "Cotton",
       style: "Urbana",
       audience: "Men",
-      imageUrl: "/placeholder-cap-black.jpg"
+      imageUrl: "/placeholder.jpg"
     },
     {
       code: "STD-002",
@@ -71,7 +71,7 @@ async function main() {
       material: "Polyester",
       style: "Deportiva",
       audience: "Unisex",
-      imageUrl: "/placeholder-cap-sport.jpg"
+      imageUrl: "/placeholder.jpg"
     },
     // PREMIUM
     {
@@ -86,7 +86,7 @@ async function main() {
       material: "Leather/Suede",
       style: "Edición Limitada",
       audience: "Men",
-      imageUrl: "/placeholder-cap-gold.jpg"
+      imageUrl: "/placeholder.jpg"
     },
     {
       code: "PREM-002",
@@ -100,7 +100,7 @@ async function main() {
       material: "Wool",
       style: "Diseñador",
       audience: "Women",
-      imageUrl: "/placeholder-cap-wool.jpg"
+      imageUrl: "/placeholder.jpg"
     }
   ]
 
@@ -130,7 +130,7 @@ async function main() {
 
   // Seed Admin User
   // Email: admin@gorras.com
-  // Password: 12345
+  // Password: Admin123
   await prisma.user.upsert({
     where: { email: "admin@gorras.com" },
     update: {

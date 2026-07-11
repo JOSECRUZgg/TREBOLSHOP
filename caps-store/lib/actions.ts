@@ -3,7 +3,7 @@
 import { prisma } from './prisma'
 import { cookies } from 'next/headers'
 import bcrypt from 'bcryptjs'
-import { signIn, signOut, auth } from './auth'
+import { signIn, signOut, auth, requireAdmin, requireAuth } from './auth'
 import { AuthError } from 'next-auth'
 import { writeFile, unlink } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -19,6 +19,8 @@ export type ProductFilters = {
     minPrice?: number
     maxPrice?: number
     view?: string
+    page?: number
+    limit?: number
 }
 
 export async function registerAction(formData: FormData) {
@@ -151,60 +153,70 @@ export async function getProducts(filters: ProductFilters = {}) {
         }
     }
 
-    const products = await prisma.product.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        include: {
-            qualityRef: true,
-            styleRef: true,
-            materialRef: true,
-            categoryRef: true
-        }
-    })
+    const page = filters.page || 1
+    const limit = filters.limit || 50
+    const skip = (page - 1) * limit
 
-    return products.map(p => ({
-        ...p,
-        price: Number(p.price),
-        cost: p.cost ? Number(p.cost) : 0,
-        createdAt: p.createdAt.toISOString(),
-        updatedAt: p.updatedAt.toISOString(),
-    }))
+    const [products, total] = await Promise.all([
+        prisma.product.findMany({
+            where,
+            orderBy: { createdAt: 'desc' },
+            include: {
+                qualityRef: true,
+                styleRef: true,
+                materialRef: true,
+                categoryRef: true
+            },
+            take: limit,
+            skip,
+        }),
+        prisma.product.count({ where })
+    ])
+
+    return {
+        products: products.map(p => ({
+            ...p,
+            price: Number(p.price),
+            cost: p.cost ? Number(p.cost) : 0,
+            createdAt: p.createdAt.toISOString(),
+            updatedAt: p.updatedAt.toISOString(),
+        })),
+        total,
+        page,
+        totalPages: Math.ceil(total / limit)
+    }
 }
 
 export async function createSale(data: { employeeId: string, items: { productId: string, quantity: number }[], paymentMethod: string }) {
-    // Transaction to deduct stock and create sale
+    await requireAuth()
     return await prisma.$transaction(async (tx) => {
-        let total = 0
+        const productIds = data.items.map(i => i.productId)
+        const products = await tx.product.findMany({ where: { id: { in: productIds } } })
+        const productMap = new Map(products.map(p => [p.id, p]))
 
-        // 1. Calculate total and check stock
+        let total = 0
         for (const item of data.items) {
-            const product = await tx.product.findUniqueOrThrow({ where: { id: item.productId } })
-            if (product.quantity < item.quantity) {
-                throw new Error(`Stock insuficiente para ${product.name}`)
-            }
+            const product = productMap.get(item.productId)
+            if (!product) throw new Error(`Producto ${item.productId} no encontrado`)
+            if (product.quantity < item.quantity) throw new Error(`Stock insuficiente para ${product.name}`)
             total += product.price.toNumber() * item.quantity
         }
 
-        // 2. Create Sale
         const sale = await tx.sale.create({
             data: {
                 total,
                 paymentMethod: data.paymentMethod,
                 employeeId: data.employeeId,
                 items: {
-                    create: await Promise.all(data.items.map(async (item) => {
-                        const product = await tx.product.findUnique({ where: { id: item.productId } })
-                        return {
-                            productId: item.productId,
-                            quantity: item.quantity,
-                            price: product!.price
-                        }
+                    create: data.items.map(item => ({
+                        productId: item.productId,
+                        quantity: item.quantity,
+                        price: productMap.get(item.productId)!.price
                     }))
                 }
             }
         })
 
-        // 3. Update Stock
         for (const item of data.items) {
             await tx.product.update({
                 where: { id: item.productId },
@@ -212,35 +224,40 @@ export async function createSale(data: { employeeId: string, items: { productId:
             })
         }
 
-        return {
-            ...sale,
-            total: Number(sale.total),
-        }
+        return { ...sale, total: Number(sale.total) }
     })
 }
 
 export async function getAdminStats() {
-    const productCount = await prisma.product.count()
-    const lowStockCount = await prisma.product.count({ where: { quantity: { lte: 5 } } })
-    const saleCount = await prisma.sale.count({ where: { status: 'COMPLETED' } })
-    const customerCount = await prisma.user.count({ where: { role: 'CUSTOMER' } })
-    const workerCount = await prisma.employee.count()
+    const [
+        productCount,
+        lowStockCount,
+        saleCount,
+        customerCount,
+        workerCount,
+        revenueResult,
+        recentOrders
+    ] = await Promise.all([
+        prisma.product.count(),
+        prisma.product.count({ where: { quantity: { lte: 5 } } }),
+        prisma.sale.count({ where: { status: 'COMPLETED' } }),
+        prisma.user.count({ where: { role: 'CUSTOMER' } }),
+        prisma.employee.count(),
+        prisma.sale.aggregate({
+            where: { status: 'COMPLETED' },
+            _sum: { total: true }
+        }),
+        prisma.sale.findMany({
+            orderBy: { date: 'desc' },
+            take: 5,
+            include: {
+                user: { select: { name: true, email: true } },
+                items: true
+            }
+        })
+    ])
 
-    // Calculate total revenue
-    const sales = await prisma.sale.findMany({
-        where: { status: 'COMPLETED' },
-        select: { total: true }
-    })
-    const totalRevenue = sales.reduce((acc, curr) => acc + curr.total.toNumber(), 0)
-
-    const recentOrders = await prisma.sale.findMany({
-        orderBy: { date: 'desc' },
-        take: 5,
-        include: {
-            user: { select: { name: true, email: true } },
-            items: true
-        }
-    })
+    const totalRevenue = Number(revenueResult._sum.total || 0)
 
     return {
         productCount,
@@ -248,7 +265,7 @@ export async function getAdminStats() {
         saleCount,
         customerCount,
         workerCount,
-        totalRevenue: Number(totalRevenue),
+        totalRevenue,
         recentOrders: recentOrders.map(order => ({
             id: order.id,
             status: order.status,
@@ -273,6 +290,7 @@ export async function getProductById(id: string) {
 }
 
 export async function addProduct(formData: FormData) {
+    await requireAdmin()
     const code = formData.get('code') as string
     const name = formData.get('name') as string
     const price = parseFloat(formData.get('price') as string)
@@ -291,11 +309,18 @@ export async function addProduct(formData: FormData) {
     let imageUrl = '/placeholder.jpg'
 
     if (imageFile && imageFile.size > 0) {
+        if (imageFile.size > 5 * 1024 * 1024) {
+            throw new Error("La imagen no debe superar 5MB")
+        }
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+        if (!allowedTypes.includes(imageFile.type)) {
+            throw new Error("Formato de imagen no soportado. Use JPG, PNG, WebP o GIF")
+        }
         const bytes = await imageFile.arrayBuffer()
         const buffer = Buffer.from(bytes)
 
-        // Generate semi-unique filename
-        const filename = `${code}-${Date.now()}-${imageFile.name}`
+        const safeName = imageFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+        const filename = `${code}-${Date.now()}-${safeName}`
         const path = join(process.cwd(), 'public', 'products', filename)
 
         await writeFile(path, buffer)
@@ -320,6 +345,7 @@ export async function addProduct(formData: FormData) {
 }
 
 export async function updateProduct(id: string, formData: FormData) {
+    await requireAdmin()
     const code = formData.get('code') as string
     const name = formData.get('name') as string
     const price = parseFloat(formData.get('price') as string)
@@ -337,6 +363,14 @@ export async function updateProduct(id: string, formData: FormData) {
     let imageUrl = existingProduct.imageUrl
 
     if (imageFile && imageFile.size > 0) {
+        if (imageFile.size > 5 * 1024 * 1024) {
+            throw new Error("La imagen no debe superar 5MB")
+        }
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+        if (!allowedTypes.includes(imageFile.type)) {
+            throw new Error("Formato de imagen no soportado. Use JPG, PNG, WebP o GIF")
+        }
+
         // Delete old image if it exists and isn't the placeholder
         if (existingProduct.imageUrl && !existingProduct.imageUrl.includes('placeholder')) {
             try {
@@ -349,7 +383,8 @@ export async function updateProduct(id: string, formData: FormData) {
 
         const bytes = await imageFile.arrayBuffer()
         const buffer = Buffer.from(bytes)
-        const filename = `${code}-${Date.now()}-${imageFile.name}`
+        const safeName = imageFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+        const filename = `${code}-${Date.now()}-${safeName}`
         const path = join(process.cwd(), 'public', 'products', filename)
         await writeFile(path, buffer)
         imageUrl = `/products/${filename}`
@@ -373,6 +408,7 @@ export async function updateProduct(id: string, formData: FormData) {
 }
 
 export async function deleteProduct(id: string) {
+    await requireAdmin()
     const product = await prisma.product.findUnique({ where: { id } })
     if (!product) throw new Error("Producto no encontrado")
 
@@ -392,6 +428,8 @@ export async function deleteProduct(id: string) {
 }
 
 export async function updateStock(productId: string, newQuantity: number) {
+    await requireAdmin()
+    if (newQuantity < 0) throw new Error("La cantidad no puede ser negativa")
     await prisma.product.update({
         where: { id: productId },
         data: { quantity: newQuantity }
@@ -412,6 +450,10 @@ export async function googleLogin() {
 }
 
 export async function updateUserPreferences(userId: string, data: { favoriteStyle?: string, headSize?: string, favoriteMaterial?: string }) {
+    const session = await requireAuth()
+    if (session.user.id !== userId) {
+        return { success: false, error: "No puedes modificar las preferencias de otro usuario." }
+    }
     try {
         await prisma.user.update({
             where: { id: userId },
@@ -473,8 +515,8 @@ export async function syncCartPrices(itemIds: string[]) {
 }
 
 export async function createPendingOrder(data: { total: number, items: any[], paymentMethod: string }) {
-    const session = await auth()
-    const userId = session?.user?.id
+    const session = await requireAuth()
+    const userId = session.user.id
 
     const order = await prisma.sale.create({
         data: {
@@ -498,18 +540,15 @@ export async function createPendingOrder(data: { total: number, items: any[], pa
     }
 }
 
-export async function getOrders(filters: { status?: string, startDate?: string, endDate?: string, customerName?: string } = {}) {
+export async function getOrders(filters: { status?: string, startDate?: string, endDate?: string, customerName?: string, page?: number, limit?: number } = {}) {
+    await requireAdmin()
     const where: any = {}
     if (filters.status && filters.status !== 'ALL') {
         where.status = filters.status
     }
     if (filters.customerName) {
         where.user = {
-            name: {
-                contains: filters.customerName,
-                // mode: 'insensitive' is not supported in all SQLite versions, 
-                // but let's try it or use standard filter
-            }
+            name: { contains: filters.customerName, mode: 'insensitive' }
         }
     }
     if (filters.startDate || filters.endDate) {
@@ -522,38 +561,47 @@ export async function getOrders(filters: { status?: string, startDate?: string, 
         }
     }
 
-    const orders = await prisma.sale.findMany({
-        where,
-        include: {
-            items: {
-                include: {
-                    product: true
-                }
-            },
-            user: {
-                select: { name: true, email: true }
-            }
-        },
-        orderBy: { date: 'desc' }
-    })
+    const page = filters.page || 1
+    const limit = filters.limit || 50
+    const skip = (page - 1) * limit
 
-    return orders.map(order => ({
-        ...order,
-        total: Number(order.total),
-        date: order.date.toISOString(),
-        items: order.items.map(item => ({
-            ...item,
-            price: Number(item.price),
-            product: item.product ? {
-                ...item.product,
-                price: Number(item.product.price),
-                cost: item.product.cost ? Number(item.product.cost) : 0
-            } : undefined
-        }))
-    }))
+    const [orders, total] = await Promise.all([
+        prisma.sale.findMany({
+            where,
+            include: {
+                items: { include: { product: true } },
+                user: { select: { name: true, email: true } }
+            },
+            orderBy: { date: 'desc' },
+            take: limit,
+            skip,
+        }),
+        prisma.sale.count({ where })
+    ])
+
+    return {
+        orders: orders.map(order => ({
+            ...order,
+            total: Number(order.total),
+            date: order.date.toISOString(),
+            items: order.items.map(item => ({
+                ...item,
+                price: Number(item.price),
+                product: item.product ? {
+                    ...item.product,
+                    price: Number(item.product.price),
+                    cost: item.product.cost ? Number(item.product.cost) : 0
+                } : undefined
+            }))
+        })),
+        total,
+        page,
+        totalPages: Math.ceil(total / limit)
+    }
 }
 
 export async function updateOrder(orderId: string, data: { status?: string, items?: { productId: string, quantity: number, price: number }[] }) {
+    await requireAdmin()
     return await prisma.$transaction(async (tx) => {
         const order = await tx.sale.findUniqueOrThrow({
             where: { id: orderId },
@@ -607,12 +655,11 @@ export async function updateOrder(orderId: string, data: { status?: string, item
 }
 
 export async function getReportStats(filters: { startDate?: string, endDate?: string, customerName?: string } = {}) {
+    await requireAdmin()
     const where: any = { status: 'COMPLETED' }
     if (filters.customerName) {
         where.user = {
-            name: {
-                contains: filters.customerName
-            }
+            name: { contains: filters.customerName }
         }
     }
     if (filters.startDate || filters.endDate) {
@@ -625,17 +672,14 @@ export async function getReportStats(filters: { startDate?: string, endDate?: st
         }
     }
 
-    const sales = await prisma.sale.findMany({
-        where,
-        select: { total: true, date: true }
-    })
-
-    const totalRevenue = sales.reduce((acc, curr) => acc + Number(curr.total), 0)
-    const saleCount = sales.length
+    const [revenueResult, sales] = await Promise.all([
+        prisma.sale.aggregate({ where, _sum: { total: true }, _count: true }),
+        prisma.sale.findMany({ where, select: { total: true, date: true }, orderBy: { date: 'desc' } })
+    ])
 
     return {
-        totalRevenue,
-        saleCount,
+        totalRevenue: Number(revenueResult._sum.total || 0),
+        saleCount: revenueResult._count,
         sales: sales.map(s => ({
             total: Number(s.total),
             date: s.date.toISOString()
@@ -668,7 +712,8 @@ export async function getUserOrders() {
                 }
             }
         },
-        orderBy: { date: 'desc' }
+        orderBy: { date: 'desc' },
+        take: 50
     })
 
     return orders.map(order => ({

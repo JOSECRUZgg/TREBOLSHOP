@@ -2,6 +2,7 @@
 
 import { prisma } from './prisma'
 import { revalidatePath } from 'next/cache'
+import { requireAdmin } from './auth'
 
 // Helper to get model from string to handle possible out-of-sync client
 const getModel = (modelName: string) => {
@@ -22,6 +23,7 @@ async function getAttributes(modelName: string) {
 }
 
 async function createAttribute(modelName: string, name: string) {
+    await requireAdmin()
     const model = getModel(modelName)
     if (!model) throw new Error(`Model ${modelName} not available`)
     if (!name) throw new Error("Nombre requerido")
@@ -37,6 +39,7 @@ async function createAttribute(modelName: string, name: string) {
 }
 
 async function updateAttribute(modelName: string, id: string, name: string) {
+    await requireAdmin()
     const model = getModel(modelName)
     if (!model) throw new Error(`Model ${modelName} not available`)
     if (!name) throw new Error("Nombre requerido")
@@ -50,6 +53,7 @@ async function updateAttribute(modelName: string, id: string, name: string) {
 }
 
 async function deleteAttribute(modelName: string, id: string) {
+    await requireAdmin()
     const model = getModel(modelName)
     if (!model) throw new Error(`Model ${modelName} not available`)
     try {
@@ -88,6 +92,7 @@ export const removeCategory = async (id: string) => deleteAttribute('category', 
  * Seeds default attributes if they don't exist
  */
 export async function seedDefaults() {
+    await requireAdmin()
     const data = {
         quality: ["Básica", "Estándar", "Premium"],
         style: ["Snapback", "Trucker", "Fitted", "Dad Hat", "Diseñador", "Beanie"],

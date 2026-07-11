@@ -36,13 +36,13 @@ export default function AdminOrdersPage() {
     const fetchOrders = useCallback(async () => {
         setIsLoading(true)
         try {
-            const data = await getOrders({
+            const res = await getOrders({
                 status: activeTab === 'pending' ? 'PENDING' : filters.status,
                 startDate: filters.startDate,
                 endDate: filters.endDate,
                 customerName: filters.customerName
             })
-            setOrders(data)
+            setOrders(res.orders)
 
             if (activeTab === 'reports') {
                 const stats = await getReportStats({
@@ -64,16 +64,17 @@ export default function AdminOrdersPage() {
     }, [fetchOrders])
 
     useEffect(() => {
+        if (!editingOrder) return
         const fetchProducts = async () => {
             try {
-                const data = await getProducts()
-                setProducts(data)
+                const res = await getProducts()
+                setProducts(res.products)
             } catch (error) {
                 console.error("Error fetching products:", error)
             }
         }
         fetchProducts()
-    }, [])
+    }, [editingOrder])
 
     const handleUpdateOrderItems = async () => {
         if (!editingOrder) return

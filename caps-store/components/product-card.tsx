@@ -22,10 +22,10 @@ interface Product {
     description?: string | null
     audience?: string | null
     imageUrl: string | null
-    qualityRef?: { name: string }
-    styleRef?: { name: string }
-    materialRef?: { name: string }
-    categoryRef?: { name: string }
+    qualityRef?: { name: string } | null
+    styleRef?: { name: string } | null
+    materialRef?: { name: string } | null
+    categoryRef?: { name: string } | null
 }
 
 export function ProductCard({ product }: { product: Product }) {

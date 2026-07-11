@@ -1,5 +1,5 @@
 import { getProducts, ProductFilters } from "@/lib/actions"
-import { getSession } from "@/lib/auth"
+import { auth } from "@/lib/auth"
 import { getQualities, getStyles, getCategories } from "@/lib/attribute-actions"
 import { ProductCard } from "@/components/product-card"
 import { Header } from "@/components/header"
@@ -11,8 +11,8 @@ import { Search, Sparkles, TrendingUp } from "lucide-react"
 
 export default async function Home({ searchParams }: { searchParams: Promise<ProductFilters> }) {
   const params = await searchParams
-  const products = await getProducts(params)
-  const session = await getSession()
+  const { products } = await getProducts(params)
+  const session = await auth()
 
   const [qualities, styles, categories] = await Promise.all([
     getQualities(),

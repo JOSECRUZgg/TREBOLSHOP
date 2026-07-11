@@ -60,7 +60,7 @@ export function Footer() {
                         <h3 className="font-bold text-lg text-white/90">Síguenos</h3>
                         <div className="flex flex-col gap-4 text-sm text-slate-400">
                             <a
-                                href="https://instagram.com/trébol.shop_1111"
+                                href="https://instagram.com/trebol.shop_1111"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="flex items-center gap-3 group hover:text-white transition-colors"
@@ -68,11 +68,11 @@ export function Footer() {
                                 <div className="p-2 bg-emerald-500/10 rounded-full group-hover:bg-emerald-500/20 transition-colors">
                                     <Instagram className="w-5 h-5 text-emerald-500" />
                                 </div>
-                                <span className="font-medium">trébol.shop_1111</span>
+                                <span className="font-medium">trebol.shop_1111</span>
                             </a>
 
                             <a
-                                href="https://tiktok.com/@trébolshop_1111"
+                                href="https://tiktok.com/@trebolshop_1111"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="flex items-center gap-3 group hover:text-white transition-colors"
@@ -80,7 +80,7 @@ export function Footer() {
                                 <div className="p-2 bg-emerald-500/10 rounded-full group-hover:bg-emerald-500/20 transition-colors">
                                     <TikTokIcon className="w-5 h-5 text-emerald-500" />
                                 </div>
-                                <span className="font-medium">trébolshop_1111</span>
+                                <span className="font-medium">trebolshop_1111</span>
                             </a>
                         </div>
                     </div>

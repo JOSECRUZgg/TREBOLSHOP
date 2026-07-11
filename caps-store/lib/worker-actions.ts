@@ -3,6 +3,7 @@
 import { prisma } from './prisma'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { requireAdmin } from './auth'
 
 export async function getWorkers() {
     const workers = await prisma.employee.findMany({
@@ -18,6 +19,7 @@ export async function getWorkerById(id: string) {
 }
 
 export async function createWorker(formData: FormData) {
+    await requireAdmin()
     const dni = formData.get('dni') as string
     const firstName = formData.get('firstName') as string
     const lastName = formData.get('lastName') as string
@@ -53,6 +55,7 @@ export async function createWorker(formData: FormData) {
 }
 
 export async function updateWorker(id: string, formData: FormData) {
+    await requireAdmin()
     const dni = formData.get('dni') as string
     const firstName = formData.get('firstName') as string
     const lastName = formData.get('lastName') as string
@@ -95,6 +98,7 @@ export async function updateWorker(id: string, formData: FormData) {
 }
 
 export async function deleteWorker(id: string) {
+    await requireAdmin()
     try {
         await prisma.employee.delete({
             where: { id }

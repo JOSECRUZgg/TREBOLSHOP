@@ -6,7 +6,7 @@ import { Plus } from "lucide-react"
 import { ProductActions } from "./product-actions"
 
 export default async function AdminProductsPage() {
-    const products = await getProducts({ limit: 100 } as any) // Fetch all (simplified)
+    const { products } = await getProducts({ limit: 200 })
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8">

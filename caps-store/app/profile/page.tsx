@@ -37,19 +37,18 @@ export default function ProfilePage() {
             router.push('/login')
         } else {
             setUser(data.user)
-            loadAddresses()
-            loadAttributes()
-            const orders = await getUserOrders()
+            const [addrs, s, m, orders] = await Promise.all([
+                getAddresses(),
+                getStyles(),
+                getMaterials(),
+                getUserOrders()
+            ])
+            setAddresses(addrs)
+            setStyles(s)
+            setMaterials(m)
             setUserOrders(orders)
         }
         setLoading(false)
-    }
-
-    const loadAttributes = async () => {
-        const s = await getStyles()
-        const m = await getMaterials()
-        setStyles(s)
-        setMaterials(m)
     }
 
     const handleUpdatePreferences = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -138,7 +137,7 @@ export default function ProfilePage() {
                                     {user.role === 'CUSTOMER' ? 'CLIENTE' : user.role === 'ADMIN' ? 'ADMINISTRADOR' : 'EMPLEADO'}
                                 </Badge>
                                 <Badge variant="outline" className="text-slate-500 border-slate-200 text-[10px] font-black uppercase tracking-wider">
-                                    Cuenta Verificada
+                                    {user.emailVerified ? 'Cuenta Verificada' : 'Sin Verificar'}
                                 </Badge>
                             </div>
                         </div>
