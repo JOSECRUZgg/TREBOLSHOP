@@ -6,8 +6,8 @@
     "dev": "next dev -p 3001 -H 0.0.0.0",
     "tunnel": "npx cloudflared tunnel --url http://localhost:3001",
     "dev:tunnel": "npx concurrently \"npm run dev\" \"npm run tunnel\"",
-    "build": "prisma generate && next build",
-    "postinstall": "prisma generate",
+    "build": "npx prisma generate && next build",
+    "postinstall": "npx prisma generate",
     "start": "next start -p 3001 -H 0.0.0.0",
     "lint": "eslint"
   },
