@@ -117,7 +117,9 @@ export default function POSPage() {
                                     <span className="font-bold text-amber-600">${product.price}</span>
                                 </div>
                                 <h3 className="font-medium line-clamp-2 leading-tight text-slate-800">{product.commercialName || product.name}</h3>
-                                <p className="text-xs text-slate-500 mt-1">{product.category} - {product.subcategory}</p>
+                                <p className="text-xs text-slate-500 mt-1">
+                                    {product.categoryRef?.name || product.style} - {product.styleRef?.name || product.subcategory}
+                                </p>
                             </div>
                             <div className={`mt-3 text-xs font-medium ${product.quantity < 5 ? 'text-red-500' : 'text-slate-400'}`}>
                                 {product.quantity === 0 ? 'Out of Stock' : `Stock: ${product.quantity}`}

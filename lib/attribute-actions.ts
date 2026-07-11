@@ -3,6 +3,11 @@
 import { prisma } from './prisma'
 import { revalidatePath } from 'next/cache'
 
+interface Attribute {
+    id: string
+    name: string
+}
+
 // Helper to get model from string to handle possible out-of-sync client
 const getModel = (modelName: string) => {
     const client = prisma as any
@@ -13,12 +18,12 @@ const getModel = (modelName: string) => {
     return client[modelName]
 }
 
-async function getAttributes(modelName: string) {
+async function getAttributes(modelName: string): Promise<Attribute[]> {
     const model = getModel(modelName)
     if (!model) return []
     return await model.findMany({
         orderBy: { name: 'asc' }
-    })
+    }) as Attribute[]
 }
 
 async function createAttribute(modelName: string, name: string) {
@@ -87,7 +92,7 @@ export const removeCategory = async (id: string) => deleteAttribute('category', 
 /**
  * Seeds default attributes if they don't exist
  */
-export async function seedDefaults() {
+export async function seedDefaults(): Promise<void> {
     const data = {
         quality: ["Básica", "Estándar", "Premium"],
         style: ["Snapback", "Trucker", "Fitted", "Dad Hat", "Diseñador", "Beanie"],
@@ -109,5 +114,4 @@ export async function seedDefaults() {
     }
 
     revalidatePath('/admin/attributes')
-    return { success: true }
 }
