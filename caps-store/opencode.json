@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "mi-mcp": {
+      "command": "npx",
+      "args": ["tsx", "c:\\Users\\JOSEC\\.antigravity\\MCPPRUEBA1\\mi-mcp\\src\\index.ts"]
+    }
+  }
+}
