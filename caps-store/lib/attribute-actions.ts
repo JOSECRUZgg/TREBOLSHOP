@@ -114,5 +114,4 @@ export async function seedDefaults() {
     }
 
     revalidatePath('/admin/attributes')
-    return { success: true }
 }
