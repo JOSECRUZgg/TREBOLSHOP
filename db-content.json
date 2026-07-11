@@ -1,0 +1,60 @@
+{
+  "employees": [
+    {
+      "id": "cmlfp62ul0001o1u0801rv345",
+      "dni": "1JJ1KKHR",
+      "firstName": "Jose",
+      "lastName": "Cruz",
+      "dateOfBirth": "2005-05-21T00:00:00.000Z",
+      "phone": "4411194774",
+      "address": "Calle Agustin Melgar 450",
+      "socialSecurity": "123123124",
+      "createdAt": "2026-02-09T21:41:45.837Z",
+      "updatedAt": "2026-02-09T21:42:27.178Z"
+    },
+    {
+      "id": "cmlfp82630002o1u0nilyy9mh",
+      "dni": "10176782R",
+      "firstName": "Ariel",
+      "lastName": "Guevara",
+      "dateOfBirth": "2005-09-05T00:00:00.000Z",
+      "phone": "4871016870",
+      "address": "Conca ",
+      "socialSecurity": "1235643",
+      "createdAt": "2026-02-09T21:43:18.268Z",
+      "updatedAt": "2026-02-09T21:43:18.268Z"
+    }
+  ],
+  "users": [
+    {
+      "id": "cml1corbb0000o1zo3hji42ny",
+      "name": "andrey",
+      "email": "a@gmail.com",
+      "role": "CUSTOMER"
+    },
+    {
+      "id": "cml1d5u660000o1fgpk4nt1c6",
+      "name": "jose cruz",
+      "email": "josecruzfortanelramirez@gmail.com",
+      "role": "CUSTOMER"
+    },
+    {
+      "id": "cml1eb3l80000o1sk8m9jz333",
+      "name": "OLIVER MMONTES",
+      "email": "mecorreoo@gmail.com",
+      "role": "CUSTOMER"
+    },
+    {
+      "id": "cml1ejxtf0000o15gd0lmnhgq",
+      "name": "Admin User",
+      "email": "admin2@gorras.com",
+      "role": "ADMIN"
+    },
+    {
+      "id": "cml1el9aw0003o1sksvnbrst0",
+      "name": "Ariel Guevara",
+      "email": "ariel.xd.guevara.15@gmail.com",
+      "role": "CUSTOMER"
+    }
+  ]
+}

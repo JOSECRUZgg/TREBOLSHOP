@@ -1,0 +1,201 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password  String?
+  name      String?
+  role      String   @default("CUSTOMER") // ADMIN, CUSTOMER, EMPLOYEE
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sales     Sale[]
+  accounts      Account[]
+  sessions      Session[]
+  addresses     Address[]
+
+  // Style Preferences
+  favoriteStyle    String?  // e.g., "Snapback", "Trucker"
+  headSize         String?  // e.g., "7 1/4 (L)"
+  favoriteMaterial String?  // e.g., "Cotton", "Wool"
+  cart             String?   // JSON stringified cart items
+}
+
+model Address {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name        String   // e.g., "Home", "Office"
+  street      String
+  city        String
+  state       String
+  postalCode  String
+  country     String   @default("Mexico")
+  isDefault   Boolean  @default(false)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model PasswordResetToken {
+  id      String   @id @default(cuid())
+  email   String
+  token   String   @unique
+  expires DateTime
+
+  @@unique([email, token])
+}
+
+model Product {
+  id             String   @id @default(cuid())
+  code           String   @unique
+  brand          String
+  name           String
+  commercialName String?
+  price          Decimal
+  cost           Decimal? // Costo para reportes (opcional)
+  quantity       Int      @default(0)
+  
+  // Attributes from requirements
+  quality        String?   // Fallback string
+  qualityId      String?
+  qualityRef     Quality?  @relation(fields: [qualityId], references: [id])
+  
+  subcategory    String?  // Fallback string
+  styleId        String?
+  styleRef       Style?    @relation(fields: [styleId], references: [id])
+  
+  material       String?  // Fallback string
+  materialId     String?
+  materialRef    Material? @relation(fields: [materialId], references: [id])
+  
+  style          String?  // Fallback string (Collection Style)
+  categoryId     String?
+  categoryRef    Category? @relation(fields: [categoryId], references: [id])
+  
+  audience       String?  // "Público goal"
+
+  description    String?
+  imageUrl       String?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  saleItems      SaleItem[]
+}
+
+model Quality {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  products Product[]
+}
+
+model Style {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  products Product[]
+}
+
+model Material {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  products Product[]
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  products Product[]
+}
+
+model Employee {
+  id             String   @id @default(cuid())
+  dni            String   @unique
+  firstName      String
+  lastName       String
+  dateOfBirth    DateTime?
+  phone          String?
+  address        String? // Localidad/Address
+  socialSecurity String?
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  sales          Sale[]
+}
+
+model Sale {
+  id            String    @id @default(cuid())
+  total         Decimal
+  paymentMethod String    // "Cash", "Card", "Online"
+  status        String    @default("COMPLETED") // COMPLETED, PENDING, CANCELLED
+  date          DateTime  @default(now())
+  
+  employeeId    String?
+  employee      Employee? @relation(fields: [employeeId], references: [id])
+  
+  userId        String?
+  user          User?     @relation(fields: [userId], references: [id])
+
+  items         SaleItem[]
+}
+
+model SaleItem {
+  id        String  @id @default(cuid())
+  saleId    String
+  sale      Sale    @relation(fields: [saleId], references: [id])
+  
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  
+  quantity  Int
+  price     Decimal // Price at the time of sale
+}
